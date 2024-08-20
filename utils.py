@@ -1,3 +1,5 @@
+import io
+
 import cv2
 import imutils
 import matplotlib.pyplot as plt
@@ -165,29 +167,19 @@ def create_scanned_document(orig, screenCnt, ratio):
     return warped
 
 
-def save_as_pdf(image, filename):
+def save_as_pdf(image):
     """
-    Saves an image as a PDF file.
+    Converts an image to a PDF file and returns the PDF data as a byte stream.
 
     Args:
-        image (numpy.ndarray): The image to be saved.
-        filename (str): The path to the PDF file where the image will be saved.
+        image (numpy.ndarray): The image to be converted to PDF. The image should be
+        in a format compatible with PIL.
+
+    Returns:
+        bytes: The PDF file data as bytes, suitable for saving or transmitting
+        over a network.
     """
     image_pil = Image.fromarray(image)
-
-    image_pil.save(filename, "PDF")
-
-
-# image = cv2.imread("test_image.jpg")
-# ratio = image.shape[0] / 500.0
-# orig = image.copy()
-
-# image = imutils.resize(image, height=500)
-# edged = detect_edges(image)
-# contours = detect_contours(edged)
-# image_contours = cv2.polylines(
-#     image.copy(), [contours], isClosed=True, color=(0, 255, 0), thickness=2
-# )
-# scanned_document = create_scanned_document(orig, contours, ratio)
-
-# save_as_pdf(scanned_document, "scanned_document.pdf")
+    pdf_bytes = io.BytesIO()
+    image_pil.save(pdf_bytes, format="PDF")
+    return pdf_bytes.getvalue()
