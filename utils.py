@@ -2,6 +2,8 @@ import cv2
 import imutils
 import matplotlib.pyplot as plt
 import numpy as np
+from PIL import Image
+from skimage.filters import threshold_local
 
 
 def order_points(pts):
@@ -95,6 +97,16 @@ def four_point_transform(image, pts):
 
 
 def detect_edges(image):
+    """
+    Detects edges in the input image using Canny edge detection.
+
+    Args:
+        image (numpy.ndarray): The input image on which edge detection is
+        to be performed.
+
+    Returns:
+        numpy.ndarray: The binary image showing detected edges.
+    """
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     gray = cv2.GaussianBlur(gray, (5, 5), 0)
     edged = cv2.Canny(gray, 75, 200)
@@ -103,6 +115,17 @@ def detect_edges(image):
 
 
 def detect_contours(edged_image):
+    """
+    Detects contours in the edged image and identifies the largest contour
+    with four vertices.
+
+    Args:
+        edged_image (numpy.ndarray): The binary image with detected edges.
+
+    Returns:
+        numpy.ndarray: A contour representing a quadrilateral (if found),
+        otherwise None.
+    """
     cnts = cv2.findContours(edged_image.copy(), cv2.RETR_LIST, cv2.CHAIN_APPROX_SIMPLE)
     cnts = imutils.grab_contours(cnts)
     cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:5]
@@ -118,21 +141,53 @@ def detect_contours(edged_image):
     return screenCnt
 
 
-image = cv2.imread("test_image.jpg")
-ratio = image.shape[0] / 500.0
-orig = image.copy()
+def create_scanned_document(orig, screenCnt, ratio):
+    """
+    Creates a scanned document effect by applying a perspective transform
+    to the original image.
 
-image = imutils.resize(image, height=500)
-edged = detect_edges(image)
-contours = detect_contours(edged)
-image_contours = cv2.polylines(
-    image.copy(), [contours], isClosed=True, color=(0, 255, 0), thickness=2
-)
+    Args:
+        orig (numpy.ndarray): The original image to be transformed.
+        screenCnt (numpy.ndarray): A 4x2 array of points representing the region
+        to be transformed.
+        ratio (float): The ratio used to scale the points from the resized image back
+        to the original size.
 
-plt.subplot(131), plt.imshow(cv2.cvtColor(image, cv2.COLOR_BGR2RGB))
-plt.title("Original Image"), plt.xticks([]), plt.yticks([])
-plt.subplot(132), plt.imshow(cv2.cvtColor(edged, cv2.COLOR_BGR2RGB))
-plt.title("Edged Image"), plt.xticks([]), plt.yticks([])
-plt.subplot(133), plt.imshow(cv2.cvtColor(image_contours, cv2.COLOR_BGR2RGB))
-plt.title("Image with Contours"), plt.xticks([]), plt.yticks([])
-plt.show()
+    Returns:
+        numpy.ndarray: The scanned document image with a top-down view
+        and binary thresholding applied.
+    """
+    warped = four_point_transform(orig, screenCnt.reshape(4, 2) * ratio)
+    warped = cv2.cvtColor(warped, cv2.COLOR_BGR2GRAY)
+    T = threshold_local(warped, 11, offset=10, method="gaussian")
+    warped = (warped > T).astype("uint8") * 255
+
+    return warped
+
+
+def save_as_pdf(image, filename):
+    """
+    Saves an image as a PDF file.
+
+    Args:
+        image (numpy.ndarray): The image to be saved.
+        filename (str): The path to the PDF file where the image will be saved.
+    """
+    image_pil = Image.fromarray(image)
+
+    image_pil.save(filename, "PDF")
+
+
+# image = cv2.imread("test_image.jpg")
+# ratio = image.shape[0] / 500.0
+# orig = image.copy()
+
+# image = imutils.resize(image, height=500)
+# edged = detect_edges(image)
+# contours = detect_contours(edged)
+# image_contours = cv2.polylines(
+#     image.copy(), [contours], isClosed=True, color=(0, 255, 0), thickness=2
+# )
+# scanned_document = create_scanned_document(orig, contours, ratio)
+
+# save_as_pdf(scanned_document, "scanned_document.pdf")
