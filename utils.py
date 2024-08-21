@@ -136,6 +136,9 @@ def detect_contours(edged_image):
         peri = cv2.arcLength(c, True)
         approx = cv2.approxPolyDP(c, 0.02 * peri, True)
 
+        if len(approx) > 4:
+            approx = cv2.approxPolyDP(c, 0.05 * peri, True)
+
         if len(approx) == 4:
             screenCnt = approx
             break
