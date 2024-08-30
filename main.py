@@ -2,6 +2,8 @@ import cv2
 import imutils
 import numpy as np
 import streamlit as st
+from PIL import Image
+from streamlit_cropper import st_cropper
 
 from utils import create_scanned_document, detect_contours, detect_edges, save_as_pdf
 
@@ -17,12 +19,26 @@ if image_file is not None:
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     st.image(image, caption="Original Image", use_column_width=True)
 
-    ratio = image.shape[0] / 500.0
-    orig = image.copy()
-    image = imutils.resize(image, height=500)
-    edges = detect_edges(image)
-    conturs = detect_contours(edges)
-    scanned_document = create_scanned_document(orig, conturs, ratio)
+    image_pil = Image.fromarray(image)
+
+    st.write("Crop the region you want to scan.")
+    cropped_image_pil = st_cropper(image_pil, realtime_update=True, aspect_ratio=None)
+
+    # Convert cropped PIL image back to OpenCV format
+    cropped_image = np.array(cropped_image_pil)
+
+    h, w, _ = cropped_image.shape
+    pts = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype="float32")
+
+    # Apply perspective transform to get the scanned document
+    scanned_document = create_scanned_document(cropped_image, pts, 1.0)
+
+    # ratio = image.shape[0] / 500.0
+    # orig = image.copy()
+    # image = imutils.resize(image, height=500)
+    # edges = detect_edges(image)
+    # conturs = detect_contours(edges)
+    # scanned_document = create_scanned_document(orig, conturs, ratio)
 
     st.image(scanned_document, caption="Scanned Document", use_column_width=True)
 
