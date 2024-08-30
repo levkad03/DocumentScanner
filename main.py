@@ -21,24 +21,29 @@ if image_file is not None:
 
     image_pil = Image.fromarray(image)
 
-    st.write("Crop the region you want to scan.")
-    cropped_image_pil = st_cropper(image_pil, realtime_update=True, aspect_ratio=None)
+    cropping_choice = st.checkbox("Manually Crop the image")
 
-    # Convert cropped PIL image back to OpenCV format
-    cropped_image = np.array(cropped_image_pil)
+    if cropping_choice:
+        st.write("Crop the region you want to scan.")
+        cropped_image_pil = st_cropper(
+            image_pil, realtime_update=True, aspect_ratio=None
+        )
 
-    h, w, _ = cropped_image.shape
-    pts = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype="float32")
+        # Convert cropped PIL image back to OpenCV format
+        cropped_image = np.array(cropped_image_pil)
 
-    # Apply perspective transform to get the scanned document
-    scanned_document = create_scanned_document(cropped_image, pts, 1.0)
+        h, w, _ = cropped_image.shape
+        pts = np.array([[0, 0], [w, 0], [w, h], [0, h]], dtype="float32")
 
-    # ratio = image.shape[0] / 500.0
-    # orig = image.copy()
-    # image = imutils.resize(image, height=500)
-    # edges = detect_edges(image)
-    # conturs = detect_contours(edges)
-    # scanned_document = create_scanned_document(orig, conturs, ratio)
+        # Apply perspective transform to get the scanned document
+        scanned_document = create_scanned_document(cropped_image, pts, 1.0)
+    else:
+        ratio = image.shape[0] / 500.0
+        orig = image.copy()
+        image = imutils.resize(image, height=500)
+        edges = detect_edges(image)
+        contours = detect_contours(edges)
+        scanned_document = create_scanned_document(orig, contours, ratio)
 
     st.image(scanned_document, caption="Scanned Document", use_column_width=True)
 
